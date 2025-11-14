@@ -205,7 +205,7 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
                   ),
                 ),
                 Text(
-                  player.firstName[0] + '. ' + player.lastName,
+                  '${player.firstName[0]}. ${player.lastName}',
                   style: const TextStyle(fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),
