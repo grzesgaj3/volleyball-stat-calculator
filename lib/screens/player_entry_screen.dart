@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:csv/csv.dart';
+import 'dart:io';
 import '../models/player.dart';
 import 'stats_tracking_screen.dart';
 
@@ -60,6 +63,116 @@ class _PlayerEntryScreenState extends State<PlayerEntryScreen> {
     });
   }
 
+  Future<void> _importPlayersFromCSV() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        final csvString = await file.readAsString();
+        
+        final List<List<dynamic>> rows = const CsvToListConverter().convert(csvString);
+        
+        int importedCount = 0;
+        List<String> errors = [];
+        
+        for (int i = 0; i < rows.length; i++) {
+          final row = rows[i];
+          
+          // Skip empty rows
+          if (row.isEmpty || row.every((cell) => cell.toString().trim().isEmpty)) {
+            continue;
+          }
+          
+          // Validate row format: firstname,lastname,position,number
+          if (row.length < 4) {
+            errors.add('Row ${i + 1}: Not enough columns (expected 4: firstname, lastname, position, number)');
+            continue;
+          }
+          
+          try {
+            final firstName = row[0].toString().trim();
+            final lastName = row[1].toString().trim();
+            final position = row[2].toString().trim();
+            final numberStr = row[3].toString().trim();
+            
+            if (firstName.isEmpty || lastName.isEmpty || position.isEmpty || numberStr.isEmpty) {
+              errors.add('Row ${i + 1}: Empty values not allowed');
+              continue;
+            }
+            
+            final number = int.tryParse(numberStr);
+            if (number == null) {
+              errors.add('Row ${i + 1}: Invalid number "$numberStr"');
+              continue;
+            }
+            
+            // Validate position
+            if (!_positions.contains(position)) {
+              errors.add('Row ${i + 1}: Invalid position "$position". Valid positions: ${_positions.join(", ")}');
+              continue;
+            }
+            
+            setState(() {
+              _players.add(Player(
+                firstName: firstName,
+                lastName: lastName,
+                number: number,
+                position: position,
+              ));
+            });
+            importedCount++;
+          } catch (e) {
+            errors.add('Row ${i + 1}: Error - $e');
+          }
+        }
+        
+        // Show result dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Import Complete'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Successfully imported $importedCount player(s)'),
+                    if (errors.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ...errors.map((error) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4.0),
+                        child: Text(error, style: const TextStyle(fontSize: 12, color: Colors.red)),
+                      )),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error importing CSV: $e')),
+        );
+      }
+    }
+  }
+
   void _proceedToStats() {
     if (_players.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +196,13 @@ class _PlayerEntryScreenState extends State<PlayerEntryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.matchTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Import from CSV',
+            onPressed: _importPlayersFromCSV,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

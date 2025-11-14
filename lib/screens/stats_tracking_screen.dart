@@ -135,35 +135,6 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
             ),
           ),
           const Divider(height: 1),
-          // Header row with action types
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            color: Colors.grey.shade100,
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 80,
-                  child: Text(
-                    'Player',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ..._actionTypes.map((action) => Expanded(
-                      child: Center(
-                        child: Text(
-                          action,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
           // Players list
           Expanded(
             child: ListView.builder(
@@ -180,119 +151,181 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
   }
 
   Widget _buildPlayerRow(Player player) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Player info
-          SizedBox(
-            width: 80,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Player header
+            Row(
               children: [
-                Text(
-                  '#${player.number}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.blue,
+                  child: Text(
+                    '${player.number}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                Text(
-                  '${player.firstName[0]}. ${player.lastName}',
-                  style: const TextStyle(fontSize: 10),
-                  overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${player.firstName} ${player.lastName}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        player.position,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-          // Action counters for each action type
-          ..._actionTypes.map((actionType) {
-            final stats = _allStats[player.fullName]!.getStats(actionType, _currentSet);
-            return Expanded(
-              child: _buildCompactCounter(player, actionType, stats),
-            );
-          }),
-        ],
+            const SizedBox(height: 12),
+            // Action counters in grid
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 1.2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: _actionTypes.length,
+              itemBuilder: (context, index) {
+                final actionType = _actionTypes[index];
+                final stats = _allStats[player.fullName]!.getStats(actionType, _currentSet);
+                return _buildActionCard(player, actionType, stats);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCompactCounter(Player player, String actionType, ActionStats stats) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+  Widget _buildActionCard(Player player, String actionType, ActionStats stats) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Plus counter
+          // Action type label
+          Text(
+            actionType,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          // Plus counter with icon
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
                 onTap: () => _decrementStat(player, actionType, 'plus'),
-                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.green),
+                child: const Icon(Icons.remove_circle, size: 18, color: Colors.green),
               ),
+              const SizedBox(width: 4),
               Container(
-                constraints: const BoxConstraints(minWidth: 16),
+                constraints: const BoxConstraints(minWidth: 20),
                 child: Text(
                   '${stats.plus}',
-                  style: const TextStyle(fontSize: 11, color: Colors.green),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: () => _incrementStat(player, actionType, 'plus'),
-                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.green),
+                child: const Icon(Icons.add_circle, size: 18, color: Colors.green),
               ),
             ],
           ),
-          // Minus counter
+          // Minus counter with icon
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
                 onTap: () => _decrementStat(player, actionType, 'minus'),
-                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.red),
+                child: const Icon(Icons.remove_circle, size: 18, color: Colors.red),
               ),
+              const SizedBox(width: 4),
               Container(
-                constraints: const BoxConstraints(minWidth: 16),
+                constraints: const BoxConstraints(minWidth: 20),
                 child: Text(
                   '${stats.minus}',
-                  style: const TextStyle(fontSize: 11, color: Colors.red),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: () => _incrementStat(player, actionType, 'minus'),
-                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.red),
+                child: const Icon(Icons.add_circle, size: 18, color: Colors.red),
               ),
             ],
           ),
-          // Star counter
+          // Star counter with icon
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               InkWell(
                 onTap: () => _decrementStat(player, actionType, 'star'),
-                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.orange),
+                child: const Icon(Icons.remove_circle, size: 18, color: Colors.orange),
               ),
+              const SizedBox(width: 4),
               Container(
-                constraints: const BoxConstraints(minWidth: 16),
+                constraints: const BoxConstraints(minWidth: 20),
                 child: Text(
                   '${stats.star}',
-                  style: const TextStyle(fontSize: 11, color: Colors.orange),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: () => _incrementStat(player, actionType, 'star'),
-                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.orange),
+                child: const Icon(Icons.star, size: 18, color: Colors.orange),
               ),
             ],
           ),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:excel/excel.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../models/player.dart';
 import '../models/stats.dart';
 
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends StatefulWidget {
   final String matchTitle;
   final List<Player> players;
   final Map<String, PlayerStats> allStats;
@@ -15,10 +18,160 @@ class StatisticsScreen extends StatelessWidget {
   });
 
   @override
+  State<StatisticsScreen> createState() => _StatisticsScreenState();
+}
+
+class _StatisticsScreenState extends State<StatisticsScreen> {
+  bool _isExporting = false;
+
+  Future<void> _exportToExcel() async {
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['Statistics'];
+
+      // Add header row
+      sheetObject.appendRow([
+        const TextCellValue('Player'),
+        const TextCellValue('Number'),
+        const TextCellValue('Position'),
+        const TextCellValue('Action Type'),
+        const TextCellValue('Plus (+)'),
+        const TextCellValue('Minus (-)'),
+        const TextCellValue('Star (★)'),
+        const TextCellValue('Total'),
+        const TextCellValue('Effectiveness %'),
+      ]);
+
+      // Add data for each player and action
+      for (var player in widget.players) {
+        final stats = widget.allStats[player.fullName]!;
+        final actionTypes = ['Attack', 'Serve', 'Block', 'Reception', 'Dig'];
+
+        for (var actionType in actionTypes) {
+          int totalPlus = 0;
+          int totalMinus = 0;
+          int totalStar = 0;
+
+          if (stats.actionStatsBySet.containsKey(actionType)) {
+            for (var actionStats in stats.actionStatsBySet[actionType]!.values) {
+              totalPlus += actionStats.plus;
+              totalMinus += actionStats.minus;
+              totalStar += actionStats.star;
+            }
+          }
+
+          final total = totalPlus + totalMinus + totalStar;
+          final effectiveness = stats.getActionEffectiveness(actionType);
+
+          sheetObject.appendRow([
+            TextCellValue(player.fullName),
+            IntCellValue(player.number),
+            TextCellValue(player.position),
+            TextCellValue(actionType),
+            IntCellValue(totalPlus),
+            IntCellValue(totalMinus),
+            IntCellValue(totalStar),
+            IntCellValue(total),
+            DoubleCellValue(effectiveness),
+          ]);
+        }
+
+        // Add overall effectiveness row
+        final overallEff = stats.getOverallEffectiveness();
+        int totalPlus = 0;
+        int totalMinus = 0;
+        int totalStar = 0;
+
+        for (var actionMap in stats.actionStatsBySet.values) {
+          for (var actionStats in actionMap.values) {
+            totalPlus += actionStats.plus;
+            totalMinus += actionStats.minus;
+            totalStar += actionStats.star;
+          }
+        }
+
+        sheetObject.appendRow([
+          TextCellValue(player.fullName),
+          IntCellValue(player.number),
+          TextCellValue(player.position),
+          const TextCellValue('OVERALL'),
+          IntCellValue(totalPlus),
+          IntCellValue(totalMinus),
+          IntCellValue(totalStar),
+          IntCellValue(totalPlus + totalMinus + totalStar),
+          DoubleCellValue(overallEff),
+        ]);
+      }
+
+      // Save file
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${widget.matchTitle.replaceAll(' ', '_')}_stats_$timestamp.xlsx';
+      final filePath = '${directory.path}/$fileName';
+      
+      final fileBytes = excel.save();
+      if (fileBytes != null) {
+        File(filePath)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(fileBytes);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Statistics exported to:\n$filePath'),
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'OK',
+                onPressed: () {},
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error exporting: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Statistics'),
+        actions: [
+          if (_isExporting)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.file_download),
+              tooltip: 'Export to Excel',
+              onPressed: _exportToExcel,
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -27,7 +180,7 @@ class StatisticsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                matchTitle,
+                widget.matchTitle,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -42,8 +195,8 @@ class StatisticsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              ...players.map((player) {
-                final stats = allStats[player.fullName]!;
+              ...widget.players.map((player) {
+                final stats = widget.allStats[player.fullName]!;
                 return _buildPlayerCard(player, stats);
               }).toList(),
             ],
