@@ -19,7 +19,6 @@ class StatsTrackingScreen extends StatefulWidget {
 
 class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
   int _currentSet = 1;
-  int _selectedPlayerIndex = 0;
   final Map<String, PlayerStats> _allStats = {};
 
   final List<String> _actionTypes = [
@@ -38,9 +37,8 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
     }
   }
 
-  void _incrementStat(String actionType, String statType) {
+  void _incrementStat(Player player, String actionType, String statType) {
     setState(() {
-      final player = widget.players[_selectedPlayerIndex];
       final stats = _allStats[player.fullName]!.getStats(actionType, _currentSet);
       
       switch (statType) {
@@ -57,9 +55,8 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
     });
   }
 
-  void _decrementStat(String actionType, String statType) {
+  void _decrementStat(Player player, String actionType, String statType) {
     setState(() {
-      final player = widget.players[_selectedPlayerIndex];
       final stats = _allStats[player.fullName]!.getStats(actionType, _currentSet);
       
       switch (statType) {
@@ -91,8 +88,6 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentPlayer = widget.players[_selectedPlayerIndex];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.matchTitle),
@@ -139,105 +134,43 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
               ],
             ),
           ),
-          // Player selector
+          const Divider(height: 1),
+          // Header row with action types
           Container(
-            padding: const EdgeInsets.all(8.0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: List.generate(widget.players.length, (index) {
-                  final player = widget.players[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: ChoiceChip(
-                      label: Text('#${player.number} ${player.fullName}'),
-                      selected: _selectedPlayerIndex == index,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _selectedPlayerIndex = index;
-                          });
-                        }
-                      },
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ),
-          const Divider(),
-          // Current player info
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Player: #${currentPlayer.number} ${currentPlayer.fullName} (${currentPlayer.position})',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const Divider(),
-          // Action counters
-          Expanded(
-            child: ListView.builder(
-              itemCount: _actionTypes.length,
-              itemBuilder: (context, index) {
-                final actionType = _actionTypes[index];
-                final stats = _allStats[currentPlayer.fullName]!
-                    .getStats(actionType, _currentSet);
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 8.0,
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            color: Colors.grey.shade100,
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 80,
+                  child: Text(
+                    'Player',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          actionType,
+                ),
+                ..._actionTypes.map((action) => Expanded(
+                      child: Center(
+                        child: Text(
+                          action,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildCounter(
-                              label: 'Plus (+)',
-                              count: stats.plus,
-                              color: Colors.green,
-                              onIncrement: () =>
-                                  _incrementStat(actionType, 'plus'),
-                              onDecrement: () =>
-                                  _decrementStat(actionType, 'plus'),
-                            ),
-                            _buildCounter(
-                              label: 'Minus (-)',
-                              count: stats.minus,
-                              color: Colors.red,
-                              onIncrement: () =>
-                                  _incrementStat(actionType, 'minus'),
-                              onDecrement: () =>
-                                  _decrementStat(actionType, 'minus'),
-                            ),
-                            _buildCounter(
-                              label: 'Star (★)',
-                              count: stats.star,
-                              color: Colors.orange,
-                              onIncrement: () =>
-                                  _incrementStat(actionType, 'star'),
-                              onDecrement: () =>
-                                  _decrementStat(actionType, 'star'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                      ),
+                    )),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Players list
+          Expanded(
+            child: ListView.builder(
+              itemCount: widget.players.length,
+              itemBuilder: (context, index) {
+                final player = widget.players[index];
+                return _buildPlayerRow(player);
               },
             ),
           ),
@@ -246,56 +179,125 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
     );
   }
 
-  Widget _buildCounter({
-    required String label,
-    required int count,
-    required Color color,
-    required VoidCallback onIncrement,
-    required VoidCallback onDecrement,
-  }) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+  Widget _buildPlayerRow(Player player) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            IconButton(
-              onPressed: onDecrement,
-              icon: const Icon(Icons.remove_circle),
-              color: color,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Player info
+          SizedBox(
+            width: 80,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '#${player.number}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '${player.firstName[0]}. ${player.lastName}',
+                  style: const TextStyle(fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
+          ),
+          // Action counters for each action type
+          ..._actionTypes.map((actionType) {
+            final stats = _allStats[player.fullName]!.getStats(actionType, _currentSet);
+            return Expanded(
+              child: _buildCompactCounter(player, actionType, stats),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactCounter(Player player, String actionType, ActionStats stats) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Plus counter
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: () => _decrementStat(player, actionType, 'plus'),
+                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.green),
               ),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Container(
+                constraints: const BoxConstraints(minWidth: 16),
+                child: Text(
+                  '${stats.plus}',
+                  style: const TextStyle(fontSize: 11, color: Colors.green),
+                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
-            IconButton(
-              onPressed: onIncrement,
-              icon: const Icon(Icons.add_circle),
-              color: color,
-            ),
-          ],
-        ),
-      ],
+              InkWell(
+                onTap: () => _incrementStat(player, actionType, 'plus'),
+                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.green),
+              ),
+            ],
+          ),
+          // Minus counter
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: () => _decrementStat(player, actionType, 'minus'),
+                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.red),
+              ),
+              Container(
+                constraints: const BoxConstraints(minWidth: 16),
+                child: Text(
+                  '${stats.minus}',
+                  style: const TextStyle(fontSize: 11, color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              InkWell(
+                onTap: () => _incrementStat(player, actionType, 'minus'),
+                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.red),
+              ),
+            ],
+          ),
+          // Star counter
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              InkWell(
+                onTap: () => _decrementStat(player, actionType, 'star'),
+                child: const Icon(Icons.remove_circle_outline, size: 14, color: Colors.orange),
+              ),
+              Container(
+                constraints: const BoxConstraints(minWidth: 16),
+                child: Text(
+                  '${stats.star}',
+                  style: const TextStyle(fontSize: 11, color: Colors.orange),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              InkWell(
+                onTap: () => _incrementStat(player, actionType, 'star'),
+                child: const Icon(Icons.add_circle_outline, size: 14, color: Colors.orange),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

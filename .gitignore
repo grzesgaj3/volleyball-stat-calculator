@@ -32,3 +32,4 @@ windows/flutter/generated_plugin_registrant.h
 linux/flutter/generated_plugin_registrant.cc
 linux/flutter/generated_plugin_registrant.h
 web/.dart_tool/
+_codeql_detected_source_root
