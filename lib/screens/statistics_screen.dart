@@ -4,17 +4,20 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../models/player.dart';
 import '../models/stats.dart';
+import '../i18n.dart';
 
 class StatisticsScreen extends StatefulWidget {
   final String matchTitle;
   final List<Player> players;
   final Map<String, PlayerStats> allStats;
+  final String language;
 
   const StatisticsScreen({
     super.key,
     required this.matchTitle,
     required this.players,
     required this.allStats,
+    required this.language,
   });
 
   @override
@@ -35,15 +38,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
       // Add header row
       sheetObject.appendRow([
-        const TextCellValue('Player'),
-        const TextCellValue('Number'),
-        const TextCellValue('Position'),
-        const TextCellValue('Action Type'),
-        const TextCellValue('Plus (+)'),
-        const TextCellValue('Minus (-)'),
-        const TextCellValue('Star (★)'),
-        const TextCellValue('Total'),
-        const TextCellValue('Effectiveness %'),
+        TextCellValue('Player'),
+        TextCellValue('Number'),
+        TextCellValue('Position'),
+        TextCellValue('Action Type'),
+        TextCellValue('Plus (+)'),
+        TextCellValue('Minus (-)'),
+        TextCellValue('Star (★)'),
+        TextCellValue('Total'),
+        TextCellValue('Effectiveness %'),
       ]);
 
       // Add data for each player and action
@@ -98,7 +101,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           TextCellValue(player.fullName),
           IntCellValue(player.number),
           TextCellValue(player.position),
-          const TextCellValue('OVERALL'),
+          TextCellValue('OVERALL'),
           IntCellValue(totalPlus),
           IntCellValue(totalMinus),
           IntCellValue(totalStar),
@@ -238,7 +241,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         ),
                       ),
                       Text(
-                        player.position,
+                        // localized position
+                        I18n.t(widget.language, 'position_' + player.position.toLowerCase().replaceAll(RegExp(r"[^a-z0-9]+"), '_')),
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -299,7 +303,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        actionType,
+                        // localized action name
+                        I18n.t(widget.language, 'action_' + actionType.toLowerCase().replaceAll(RegExp(r"[^a-z0-9]+"), '_')),
                         style: const TextStyle(fontSize: 14),
                       ),
                     ),
