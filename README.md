@@ -74,11 +74,12 @@ flutter run -d chrome
    - Position (Setter, Outside Hitter, Middle Blocker, Opposite, Libero)
 3. **Track Statistics**: 
    - Select the current set (1-5)
-   - Select a player
-   - For each action type, increment/decrement the appropriate counter:
-     - Plus (+) for successful actions
-     - Minus (-) for errors
-     - Star (★) for exceptional plays
+   - All players are displayed in a table simultaneously
+   - For each player and action type, use the compact counters to track stats:
+     - Plus (+) for successful actions (green)
+     - Minus (-) for errors (red)
+     - Star (★) for exceptional plays (orange)
+   - No need to switch between players - track all players at once!
 4. **View Statistics**: Click "View Statistics" to see effectiveness percentages for each player and action
 
 ## Effectiveness Calculation
