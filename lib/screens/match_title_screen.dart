@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'player_entry_screen.dart';
+import '../i18n.dart';
 
 class MatchTitleScreen extends StatefulWidget {
   const MatchTitleScreen({super.key});
@@ -11,6 +12,12 @@ class MatchTitleScreen extends StatefulWidget {
 class _MatchTitleScreenState extends State<MatchTitleScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  String _selectedLanguage = 'pl';
+
+  final Map<String, String> _languages = {
+    'pl': 'Polski',
+    'en': 'English',
+  };
 
   @override
   void dispose() {
@@ -22,7 +29,7 @@ class _MatchTitleScreenState extends State<MatchTitleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Volleyball Stat Calculator'),
+        title: Text(I18n.t(_selectedLanguage, 'app_title')),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -32,27 +39,46 @@ class _MatchTitleScreenState extends State<MatchTitleScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Enter Match Title',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              Text(
+                I18n.t(_selectedLanguage, 'enter_match_title'),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Match Title',
-                  border: OutlineInputBorder(),
-                  hintText: 'e.g., Team A vs Team B',
+                decoration: InputDecoration(
+                  labelText: I18n.t(_selectedLanguage, 'enter_match_title'),
+                  border: const OutlineInputBorder(),
+                  hintText: I18n.t(_selectedLanguage, 'match_title_hint'),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a match title';
+                    return I18n.t(_selectedLanguage, 'please_enter_match_title');
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 32),
+              DropdownButtonFormField<String>(
+                value: _selectedLanguage,
+                decoration: InputDecoration(
+                  labelText: I18n.t(_selectedLanguage, 'language'),
+                  border: const OutlineInputBorder(),
+                ),
+                items: _languages.entries.map((e) {
+                  return DropdownMenuItem<String>(
+                    value: e.key,
+                    child: Text(e.value),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedLanguage = val!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
@@ -61,14 +87,15 @@ class _MatchTitleScreenState extends State<MatchTitleScreen> {
                       MaterialPageRoute(
                         builder: (context) => PlayerEntryScreen(
                           matchTitle: _titleController.text,
+                          language: _selectedLanguage,
                         ),
                       ),
                     );
                   }
                 },
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('Next', style: TextStyle(fontSize: 18)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(I18n.t(_selectedLanguage, 'next'), style: const TextStyle(fontSize: 18)),
                 ),
               ),
             ],
