@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'dart:typed_data';
+import '../utils/file_saver.dart';
 import '../models/player.dart';
 import '../models/stats.dart';
 import '../i18n.dart';
@@ -110,22 +110,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         ]);
       }
 
-      // Save file
-      final directory = await getApplicationDocumentsDirectory();
+      // Save file (platform-aware)
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '${widget.matchTitle.replaceAll(' ', '_')}_stats_$timestamp.xlsx';
-      final filePath = '${directory.path}/$fileName';
-      
+
       final fileBytes = excel.save();
       if (fileBytes != null) {
-        File(filePath)
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(fileBytes);
+        final bytes = Uint8List.fromList(fileBytes);
+        final savedPath = await saveFile(bytes, fileName);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Statistics exported to:\n$filePath'),
+              content: Text(savedPath != null
+                  ? 'Statistics exported to:\n$savedPath'
+                  : 'Statistics exported (download started)'),
               duration: const Duration(seconds: 5),
               action: SnackBarAction(
                 label: 'OK',
