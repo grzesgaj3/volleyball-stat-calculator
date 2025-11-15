@@ -266,7 +266,7 @@ class _StatsTrackingScreenState extends State<StatsTrackingScreen> {
     if (key.contains('block') || key.contains('blok')) return Colors.red.shade100;
     if (key.contains('attack') || key.contains('atak')) return Colors.orange.shade100;
     if (key.contains('serve') || key.contains('zagryw') || key.contains('zagr')) return Colors.blue.shade100;
-    if (key.contains('set') || key.contains('rozeg')) return Colors.purple.shade100;
+    if (key.contains('set') || key.contains('rozeg')) return Colors.teal.shade100;
     return Colors.grey.shade100;
   }
 

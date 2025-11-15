@@ -347,16 +347,18 @@ class _PlayerEntryScreenState extends State<PlayerEntryScreen> {
 										),
 						),
 						const SizedBox(height: 16),
-						ElevatedButton(
-							onPressed: _proceedToStats,
-							style: ElevatedButton.styleFrom(
-								minimumSize: const Size(double.infinity, 50),
-							),
-							child: Text(
-								I18n.t(widget.language, 'next_track_stats'),
-								style: const TextStyle(fontSize: 18),
-							),
-						),
+												ElevatedButton(
+													onPressed: _proceedToStats,
+													style: ElevatedButton.styleFrom(
+														minimumSize: const Size(double.infinity, 50),
+														backgroundColor: Colors.teal,
+														foregroundColor: Colors.white,
+													),
+													child: Text(
+														I18n.t(widget.language, 'next_track_stats'),
+														style: const TextStyle(fontSize: 18),
+													),
+												),
 					],
 				),
 			),
