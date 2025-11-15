@@ -86,7 +86,7 @@ class I18n {
       'position_libero': 'Libero',
       // Actions
       'action_serve': 'Zagrywka',
-      'action_set': 'Podanie',
+      'action_set': 'Rozegranie',
       'action_reception': 'Przyjęcie',
       'action_dig': 'Obrona',
       'action_attack': 'Atak',
