@@ -93,6 +93,10 @@ class _MatchTitleScreenState extends State<MatchTitleScreen> {
                     );
                   }
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(I18n.t(_selectedLanguage, 'next'), style: const TextStyle(fontSize: 18)),
