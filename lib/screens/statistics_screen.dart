@@ -36,79 +36,156 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       var excel = Excel.createExcel();
       Sheet sheetObject = excel['Statistics'];
 
-      // Add header row
+      // Build header row to match the provided form (grouped columns flattened)
       sheetObject.appendRow([
-        TextCellValue('Player'),
-        TextCellValue('Number'),
-        TextCellValue('Position'),
-        TextCellValue('Action Type'),
-        TextCellValue('Plus (+)'),
-        TextCellValue('Minus (-)'),
-        TextCellValue('Star (★)'),
-        TextCellValue('Total'),
-        TextCellValue('Effectiveness %'),
+        TextCellValue('Zawodnik'), // Player
+        TextCellValue('Suma punktów'),
+        TextCellValue('Przyjęcie - Perfekcyjne'),
+        TextCellValue('Przyjęcie - %'),
+        TextCellValue('Przyjęcie - Pozytywne'),
+        TextCellValue('Przyjęcie - %'),
+        TextCellValue('Przyjęcie - Negatywne'),
+        TextCellValue('Przyjęcie - Ilość prób'),
+        TextCellValue('Atak - Punktowy'),
+        TextCellValue('Atak - %'),
+        TextCellValue('Atak - Ilość prób'),
+        TextCellValue('Zagrywka - As'),
+        TextCellValue('Zagrywka - Błąd'),
+        TextCellValue('Zagrywka - Ilość prób'),
+        TextCellValue('Blok - Punktowy'),
+        TextCellValue('Blok - Pasywny'),
+        TextCellValue('Obrona'),
+        TextCellValue('Asekuracja'),
       ]);
 
-      // Add data for each player and action
+      // Accumulators for summary row
+      final totals = List<int>.filled(18, 0);
+
+      // Helper to sum stats across sets for an action
+      int sumPlus(PlayerStats s, String action) {
+        int acc = 0;
+        if (s.actionStatsBySet.containsKey(action)) {
+          for (var st in s.actionStatsBySet[action]!.values) acc += st.plus;
+        }
+        return acc;
+      }
+
+      int sumMinus(PlayerStats s, String action) {
+        int acc = 0;
+        if (s.actionStatsBySet.containsKey(action)) {
+          for (var st in s.actionStatsBySet[action]!.values) acc += st.minus;
+        }
+        return acc;
+      }
+
+      int sumStar(PlayerStats s, String action) {
+        int acc = 0;
+        if (s.actionStatsBySet.containsKey(action)) {
+          for (var st in s.actionStatsBySet[action]!.values) acc += st.star;
+        }
+        return acc;
+      }
+
       for (var player in widget.players) {
         final stats = widget.allStats[player.fullName]!;
-        final actionTypes = ['Attack', 'Serve', 'Block', 'Reception', 'Dig'];
 
-        for (var actionType in actionTypes) {
-          int totalPlus = 0;
-          int totalMinus = 0;
-          int totalStar = 0;
+        // Map action names used in app -> columns
+        final receptionTotalPlus = sumPlus(stats, 'Reception'); // treated as 'Perfekcyjne'
+        final receptionTotalStar = sumStar(stats, 'Reception'); // treated as 'Pozytywne'
+        final receptionTotalMinus = sumMinus(stats, 'Reception'); // 'Negatywne'
+        final receptionAttempts = receptionTotalPlus + receptionTotalStar + receptionTotalMinus;
 
-          if (stats.actionStatsBySet.containsKey(actionType)) {
-            for (var actionStats in stats.actionStatsBySet[actionType]!.values) {
-              totalPlus += actionStats.plus;
-              totalMinus += actionStats.minus;
-              totalStar += actionStats.star;
-            }
-          }
+        final attackPoints = sumPlus(stats, 'Attack');
+        final attackStar = sumStar(stats, 'Attack');
+        final attackMinus = sumMinus(stats, 'Attack');
+        final attackAttempts = attackPoints + attackStar + attackMinus;
+        final attackEffectiveness = attackAttempts == 0 ? 0.0 : ((attackPoints + attackStar) / attackAttempts) * 100;
 
-          final total = totalPlus + totalMinus + totalStar;
-          final effectiveness = stats.getActionEffectiveness(actionType);
+        final serveAces = sumPlus(stats, 'Serve');
+        final serveErrors = sumMinus(stats, 'Serve');
+        final serveAttempts = serveAces + serveErrors + sumStar(stats, 'Serve');
 
-          sheetObject.appendRow([
-            TextCellValue(player.fullName),
-            IntCellValue(player.number),
-            TextCellValue(player.position),
-            TextCellValue(actionType),
-            IntCellValue(totalPlus),
-            IntCellValue(totalMinus),
-            IntCellValue(totalStar),
-            IntCellValue(total),
-            DoubleCellValue(effectiveness),
-          ]);
-        }
+        final blockPoints = sumPlus(stats, 'Block');
+        final blockPassive = sumStar(stats, 'Block');
 
-        // Add overall effectiveness row
-        final overallEff = stats.getOverallEffectiveness();
-        int totalPlus = 0;
-        int totalMinus = 0;
-        int totalStar = 0;
+        final defense = sumPlus(stats, 'Dig');
+        final coverage = sumStar(stats, 'Dig');
 
-        for (var actionMap in stats.actionStatsBySet.values) {
-          for (var actionStats in actionMap.values) {
-            totalPlus += actionStats.plus;
-            totalMinus += actionStats.minus;
-            totalStar += actionStats.star;
-          }
-        }
+        // Suma punktów: approximate as attack points + serve aces + block points
+        final totalPoints = attackPoints + serveAces + blockPoints;
 
+        // Reception percent and positive percent: compute as (plus/attempts)*100 etc.
+        final receptionPercent = receptionAttempts == 0 ? 0.0 : (receptionTotalPlus / receptionAttempts) * 100;
+        final receptionPositivePercent = receptionAttempts == 0 ? 0.0 : (receptionTotalStar / receptionAttempts) * 100;
+
+        // Append the row
         sheetObject.appendRow([
           TextCellValue(player.fullName),
-          IntCellValue(player.number),
-          TextCellValue(player.position),
-          TextCellValue('OVERALL'),
-          IntCellValue(totalPlus),
-          IntCellValue(totalMinus),
-          IntCellValue(totalStar),
-          IntCellValue(totalPlus + totalMinus + totalStar),
-          DoubleCellValue(overallEff),
+          IntCellValue(totalPoints),
+          IntCellValue(receptionTotalPlus),
+          DoubleCellValue(receptionPercent),
+          IntCellValue(receptionTotalStar),
+          DoubleCellValue(receptionPositivePercent),
+          IntCellValue(receptionTotalMinus),
+          IntCellValue(receptionAttempts),
+          IntCellValue(attackPoints),
+          DoubleCellValue(attackEffectiveness),
+          IntCellValue(attackAttempts),
+          IntCellValue(serveAces),
+          IntCellValue(serveErrors),
+          IntCellValue(serveAttempts),
+          IntCellValue(blockPoints),
+          IntCellValue(blockPassive),
+          IntCellValue(defense),
+          IntCellValue(coverage),
         ]);
+
+        // Update totals (indices correspond to header columns)
+        totals[0] += 0; // placeholder for player name (not numeric)
+        totals[1] += totalPoints;
+        totals[2] += receptionTotalPlus;
+        // 3 is percent - not aggregated as sum; we'll compute later
+        totals[4] += receptionTotalStar;
+        // 5 percent skip
+        totals[6] += receptionTotalMinus;
+        totals[7] += receptionAttempts;
+        totals[8] += attackPoints;
+        // 9 percent skip
+        totals[10] += attackAttempts;
+        totals[11] += serveAces;
+        totals[12] += serveErrors;
+        totals[13] += serveAttempts;
+        totals[14] += blockPoints;
+        totals[15] += blockPassive;
+        totals[16] += defense;
+        totals[17] += coverage;
       }
+
+      // Build summary/footer row (compute percents where appropriate)
+      final summaryReceptionPercent = totals[7] == 0 ? 0.0 : (totals[2] / totals[7]) * 100;
+      final summaryReceptionPositivePercent = totals[7] == 0 ? 0.0 : (totals[4] / totals[7]) * 100;
+      final summaryAttackPercent = totals[10] == 0 ? 0.0 : (totals[8] + 0 /*stars unknown aggregated separately*/ ) / totals[10] * 100;
+
+      sheetObject.appendRow([
+        TextCellValue('Podsumowanie'),
+        IntCellValue(totals[1]),
+        IntCellValue(totals[2]),
+        DoubleCellValue(summaryReceptionPercent),
+        IntCellValue(totals[4]),
+        DoubleCellValue(summaryReceptionPositivePercent),
+        IntCellValue(totals[6]),
+        IntCellValue(totals[7]),
+        IntCellValue(totals[8]),
+        DoubleCellValue(summaryAttackPercent),
+        IntCellValue(totals[10]),
+        IntCellValue(totals[11]),
+        IntCellValue(totals[12]),
+        IntCellValue(totals[13]),
+        IntCellValue(totals[14]),
+        IntCellValue(totals[15]),
+        IntCellValue(totals[16]),
+        IntCellValue(totals[17]),
+      ]);
 
       // Save file (platform-aware)
       final timestamp = DateTime.now().millisecondsSinceEpoch;
